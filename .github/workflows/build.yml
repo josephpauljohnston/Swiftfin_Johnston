@@ -1,0 +1,41 @@
+name: Build Unsigned tvOS IPA
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Select Xcode
+      run: sudo xcode-select -switch /Applications/Xcode.app
+
+    - name: Build Unsigned Archive
+      run: |
+        xcodebuild clean archive \
+          -project Swiftfin.xcodeproj \
+          -scheme "Swiftfin" \
+          -configuration Release \
+          -destination 'generic/platform=tvOS' \
+          -archivePath $PWD/build/Swiftfin.xcarchive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+
+    - name: Package into IPA
+      run: |
+        mkdir -p Payload
+        cp -r build/Swiftfin.xcarchive/Products/Applications/Swiftfin.app Payload/
+        zip -r Swiftfin-Unsigned.ipa Payload
+
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Swiftfin-tvOS
+        path: Swiftfin-Unsigned.ipa
