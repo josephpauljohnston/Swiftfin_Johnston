@@ -8,10 +8,10 @@ on:
 jobs:
   build:
     name: "Build Unsigned Swiftfin tvOS"
-    runs-on: macos-14
+    runs-on: macos-15 # Use the newest macOS runner
 
     env:
-      XCODE_VERSION: "15.4" # Forces GitHub to use a stable Xcode version
+      XCODE_VERSION: "16.0" # Use the newest Xcode to read the format 71 project
 
     steps:
       - name: Checkout repository
@@ -22,6 +22,9 @@ jobs:
         with:
           ruby-version: '3.3'
           bundler-cache: true
+          
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode_16.0.app
 
       - name: Install Homebrew dependencies
         run: brew bundle --file Brewfile
