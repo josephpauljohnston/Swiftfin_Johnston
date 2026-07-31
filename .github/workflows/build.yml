@@ -7,38 +7,48 @@ on:
 
 jobs:
   build:
+    name: "Build Unsigned Swiftfin tvOS"
     runs-on: macos-14
 
+    env:
+      XCODE_VERSION: "15.4" # Forces GitHub to use a stable Xcode version
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Select Xcode
-      run: sudo xcode-select -switch /Applications/Xcode.app
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
 
-    - name: Resolve Dependencies
-      run: xcodebuild -resolvePackageDependencies -project Swiftfin.xcodeproj -scheme "Swiftfin"
+      - name: Install Homebrew dependencies
+        run: brew bundle --file Brewfile
 
-    - name: Build Unsigned Archive
-      run: |
-        xcodebuild clean archive \
-          -project Swiftfin.xcodeproj \
-          -scheme "Swiftfin" \
-          -configuration Release \
-          -destination 'generic/platform=tvOS' \
-          -archivePath $PWD/build/Swiftfin.xcarchive \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+      - name: Update Carthage (Dependencies)
+        run: carthage update --use-xcframeworks --cache-builds
 
-    - name: Package into IPA
-      run: |
-        mkdir -p Payload
-        cp -r build/Swiftfin.xcarchive/Products/Applications/Swiftfin.app Payload/
-        zip -r Swiftfin-Unsigned.ipa Payload
+      - name: Build Unsigned Archive
+        run: |
+          xcodebuild clean archive \
+            -project Swiftfin.xcodeproj \
+            -scheme "Swiftfin tvOS" \
+            -configuration Release \
+            -destination 'generic/platform=tvOS' \
+            -archivePath $PWD/build/Swiftfin.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
-    - name: Upload IPA Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: Swiftfin-tvOS
-        path: "**/Swiftfin-Unsigned.ipa"
+      - name: Package into IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/Swiftfin.xcarchive/Products/Applications/Swiftfin.app Payload/
+          zip -r Swiftfin-Unsigned.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Swiftfin-tvOS
+          path: "Swiftfin-Unsigned.ipa"
